@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, FormEvent, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 
-export default function ResetPasswordPage() {
-  const params = useParams();
+function ResetPasswordForm() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token') || '';
   const { showToast } = useApp();
-  const token = params.token as string;
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -77,5 +77,13 @@ export default function ResetPasswordPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-6 h-6 border-2 border-accent-violet border-t-transparent rounded-full animate-spin" /></div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

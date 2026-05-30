@@ -4,11 +4,11 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
+        destination: 'http://localhost:8000/api/:path*',
       },
       {
         source: '/downloads/:path*',
-        destination: 'http://localhost:3001/downloads/:path*',
+        destination: 'http://localhost:8000/downloads/:path*',
       },
     ];
   },
