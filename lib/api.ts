@@ -25,10 +25,12 @@ const API = {
 
   setToken(token: string | null): void {
     this._token = token;
-    if (token) {
-      localStorage.setItem('sbay_sdab_token', token);
-    } else {
-      localStorage.removeItem('sbay_sdab_token');
+    if (typeof window !== 'undefined') {
+      if (token) {
+        localStorage.setItem('sbay_sdab_token', token);
+      } else {
+        localStorage.removeItem('sbay_sdab_token');
+      }
     }
   },
 

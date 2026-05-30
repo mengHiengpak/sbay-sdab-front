@@ -218,8 +218,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const loadLibraryData = useCallback(async (page = 1, filter = '') => {
     try {
-      const filterParam = filter && filter !== 'mp3' ? `&platform=${filter}` : '';
-      const formatParam = filter === 'mp3' ? '&format=mp3' : '';
+      const filterParam = filter && filter !== 'audio' ? `&platform=${filter}` : '';
+      const formatParam = filter === 'audio' ? '&format=audio' : '';
       const res = await API.get(`/videos?page=${page}&limit=20${filterParam}${formatParam}`);
       return { data: (res.data as any[]) || [], pagination: res.pagination };
     } catch { return { data: getDemoVideos(), pagination: null }; }

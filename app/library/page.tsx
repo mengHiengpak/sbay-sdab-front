@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import VideoGrid from '@/components/VideoGrid';
 import type { Video } from '@/lib/types';
@@ -11,13 +11,18 @@ export default function LibraryPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
-    loadLibrary(page, libraryFilter).then((res: { data: Video[]; pagination: any }) => {
+    initialLoadDone.current = false;
+    setVideos([]);
+    setPage(1);
+    loadLibrary(1, libraryFilter).then((res: { data: Video[]; pagination: any }) => {
       setVideos(res.data);
       setHasMore(res.pagination?.pages > 1);
+      initialLoadDone.current = true;
     });
-  }, [page, libraryFilter, loadLibrary]);
+  }, [libraryFilter, loadLibrary]);
 
   const handleFavorite = (video: Video) => {
     setVideos((prev) => prev.map((v) => v._id === video._id ? { ...v, isFavorite: !v.isFavorite } : v));
@@ -29,15 +34,16 @@ export default function LibraryPage() {
 
   const handleFilter = (filter: string) => {
     dispatch({ type: 'SET_LIBRARY_FILTER', payload: filter });
-    setPage(1);
   };
 
   const handleLoadMore = async () => {
     const next = page + 1;
-    setPage(next);
     const res = await loadLibrary(next, libraryFilter);
-    setVideos((prev) => [...prev, ...res.data]);
-    if (next >= (res.pagination?.pages || 1)) setHasMore(false);
+    if (res.data.length > 0) {
+      setVideos((prev) => [...prev, ...res.data]);
+      setPage(next);
+      if (next >= (res.pagination?.pages || 1)) setHasMore(false);
+    }
   };
 
   const handlePlayVideo = (video: Video, queue: Video[], index: number) => {
@@ -50,7 +56,7 @@ export default function LibraryPage() {
     { label: 'YouTube', value: 'youtube' },
     { label: 'Facebook', value: 'facebook' },
     { label: 'TikTok', value: 'tiktok' },
-    { label: 'Audio', value: 'mp3' },
+    { label: 'Audio', value: 'audio' },
   ];
 
   return (
