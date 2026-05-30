@@ -124,6 +124,15 @@ export default function Sidebar() {
         </button>
       </div>
       <div className="flex flex-col gap-[2px] mt-auto pt-3 border-t border-border">
+        <Link href="/cookies" onClick={() => { if (window.innerWidth <= 768) dispatch({ type: 'SET_SIDEBAR', payload: false }); }}
+          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[0.875rem] font-medium no-underline cursor-pointer transition-all ${pathname === '/cookies' ? 'bg-gradient-to-r from-accent-purple/20 to-accent-cyan/10 text-text-primary border border-accent-purple/25' : 'text-text-secondary hover:bg-surface hover:text-text-primary'}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px] shrink-0">
+            <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" />
+            <line x1="12" y1="2" x2="12" y2="6" /><line x1="12" y1="18" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" />
+          </svg>
+          <span>Cookies</span>
+        </Link>
         {user ? (
           <button onClick={async () => { await logout(); router.push('/'); }}
             className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[0.875rem] font-medium text-text-secondary bg-none border-none cursor-pointer transition-all hover:bg-surface hover:text-red-400"
