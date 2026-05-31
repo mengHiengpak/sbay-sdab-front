@@ -12,7 +12,7 @@ interface ApiResponse {
 type ApiHeaders = Record<string, string>;
 
 const API = {
-  base: '/api',
+  base: process.env.NEXT_PUBLIC_API_URL || '/api',
   _token: null as string | null,
 
   getToken(): string | null {
