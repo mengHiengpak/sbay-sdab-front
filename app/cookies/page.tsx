@@ -5,16 +5,19 @@ import API from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 
 export default function CookiesPage() {
-  const { showToast } = useApp();
+  const { showToast, state, navigateTo } = useApp();
   const [cookies, setCookies] = useState('');
   const [hasCookies, setHasCookies] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const isLoggedIn = !!state.user;
+
   useEffect(() => {
+    if (!isLoggedIn) return;
     API.get('/download/cookies-status', true).then(res => {
       if (res.success && (res.data as any)?.hasCookies) setHasCookies(true);
     }).catch(() => {});
-  }, []);
+  }, [isLoggedIn]);
 
   const handleSave = async () => {
     if (!cookies.trim()) return;
@@ -72,15 +75,27 @@ export default function CookiesPage() {
           </div>
         )}
 
-        <textarea value={cookies} onChange={(e) => setCookies(e.target.value)}
-          placeholder="Paste your YouTube cookies.txt here..."
-          className="w-full h-48 px-4 py-3 bg-bg-input border border-border rounded-xl text-text-primary font-mono text-[0.8rem] outline-none transition-all resize-y focus:border-accent-violet mb-4"
-        />
+        {!isLoggedIn ? (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 mb-4 text-center">
+            <p className="text-amber-400 text-[0.85rem]">សូមចូលគណនីមុនពេលកំណត់ Cookies</p>
+            <button onClick={() => navigateTo('login')}
+              className="mt-2 px-4 py-1.5 bg-accent-violet text-white rounded-lg text-[0.8rem] font-medium cursor-pointer border-none hover:opacity-90">
+              ចូលគណនី
+            </button>
+          </div>
+        ) : (
+          <>
+            <textarea value={cookies} onChange={(e) => setCookies(e.target.value)}
+              placeholder="Paste your YouTube cookies.txt here..."
+              className="w-full h-48 px-4 py-3 bg-bg-input border border-border rounded-xl text-text-primary font-mono text-[0.8rem] outline-none transition-all resize-y focus:border-accent-violet mb-4"
+            />
 
-        <button onClick={handleSave} disabled={saving || !cookies.trim()}
-          className="px-6 py-2.5 bg-accent-violet text-white rounded-xl text-[0.9rem] font-medium cursor-pointer transition-all border-none hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed">
-          {saving ? 'Saving...' : 'Save Cookies'}
-        </button>
+            <button onClick={handleSave} disabled={saving || !cookies.trim()}
+              className="px-6 py-2.5 bg-accent-violet text-white rounded-xl text-[0.9rem] font-medium cursor-pointer transition-all border-none hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed">
+              {saving ? 'Saving...' : 'Save Cookies'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

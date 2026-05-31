@@ -184,7 +184,7 @@ interface AppContextValue {
   closeModal: () => void;
   handleTimeUpdate: (time: number) => void;
   getActiveMedia: () => HTMLMediaElement | null;
-  pollDownload: (downloadId: string, toastId: string) => void;
+  pollDownload: (downloadId: string, toastId: string, initialTitle?: string) => void;
   checkAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<any>;
   register: (name: string, email: string, password: string) => Promise<any>;
@@ -201,7 +201,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const activeMediaRef = useRef<HTMLMediaElement | null>(null);
-  const pollDownloadRef = useRef<(downloadId: string, toastId: string) => void>(() => {});
+  const pollDownloadRef = useRef<(downloadId: string, toastId: string, initialTitle?: string) => void>(() => {});
   const playPrevRef = useRef<() => void>(() => {});
   const pollDownloadFnRef = useRef<() => void>(() => {});
 
@@ -251,7 +251,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const analyzeUrl = useCallback(async (url: string) => {
     if (!url) { showToastRef.current('error', 'Error', 'សូម​បញ្ចូល URL'); return null; }
     try {
-      const res = await API.post('/download/info', { url });
+      const token = API.getToken();
+      const res = await API.post('/download/info', { url }, !!token);
       if (!res.success) throw new Error((res.error as string) || 'Failed');
       dispatch({ type: 'SET_CURRENT_VIDEO_INFO', payload: { ...(res.data as Record<string, unknown> || {}), sourceUrl: url } });
       dispatch({ type: 'SET_SELECTED_FORMAT', payload: (res.data as any)?.formats?.[0] || null });
@@ -296,28 +297,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const fmt = state.selectedFormat || { id: 'best', ext: 'mp4', quality: '720p', type: 'video' };
     const toastId = showToastRef.current('downloading', (info.title as string)?.substring(0, 40), '0%', 0);
     try {
+      const token = API.getToken();
       const res = await API.post('/download/start', {
         url: info.sourceUrl, formatId: fmt.id, quality: fmt.quality,
         ext: fmt.ext, title: info.title, thumbnail: info.thumbnail
-      });
+      }, !!token);
       if (!res.success) throw new Error((res.error as string) || 'Download failed');
       const { downloadId } = res.data as any || {};
-      dispatch({ type: 'ADD_DOWNLOAD', payload: { id: downloadId, data: { toastId, videoId: (res.data as any)?.videoId, title: info.title } } });
-      pollDownloadRef.current(downloadId, toastId);
+      if (!downloadId) throw new Error('Server did not return a download ID');
+      dispatch({ type: 'ADD_DOWNLOAD', payload: { id: downloadId, data: { toastId, videoId: (res.data as any)?.videoId, title: info.title, status: 'starting', progress: 0 } } });
+      pollDownloadRef.current(downloadId, toastId, info.title as string);
     } catch (err: any) { updateToast(toastId, { type: 'error', title: 'Download Failed', subtitle: err.message }); }
   }, [state.currentVideoInfo, state.selectedFormat, updateToast]);
 
-  const pollDownload = useCallback((downloadId: string, toastId: string) => {
+  const pollDownload = useCallback((downloadId: string, toastId: string, initialTitle?: string) => {
     const interval = setInterval(async () => {
       try {
-        const res = await API.get(`/download/progress/${downloadId}`);
+        const token = API.getToken();
+        const res = await API.get(`/download/progress/${downloadId}`, !!token);
         const { status, progress, error } = res.data as any || {};
-        updateToast(toastId, { subtitle: `កំពុង​ទាញ​យក... ${progress}%`, progress });
+        updateToast(toastId, { subtitle: `${progress}%`, progress });
+        const existing = state.activeDownloads[downloadId] as any || {};
+        dispatch({ type: 'ADD_DOWNLOAD', payload: { id: downloadId, data: { ...existing, status, progress, title: existing.title || initialTitle } } });
         if (status === 'completed') {
           clearInterval(interval);
           updateToast(toastId, { type: 'success', title: 'ទាញ់យក​បាន​ជោគ​ជ័យ! ✓', subtitle: '' });
-          dispatch({ type: 'REMOVE_DOWNLOAD', payload: downloadId });
-          setTimeout(() => removeToast(toastId), 3000);
+          setTimeout(() => { dispatch({ type: 'REMOVE_DOWNLOAD', payload: downloadId }); removeToast(toastId); }, 3000);
         } else if (status === 'error') {
           clearInterval(interval);
           updateToast(toastId, { type: 'error', title: 'Download Failed', subtitle: error || 'Unknown error' });
@@ -325,7 +330,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } catch { clearInterval(interval); }
     }, 1500);
-  }, [updateToast, removeToast]);
+  }, [updateToast, removeToast, state.activeDownloads]);
 
   pollDownloadRef.current = pollDownload;
 

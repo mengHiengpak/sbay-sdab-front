@@ -43,11 +43,30 @@ const API = {
     return headers;
   },
 
+  async _handleResponse(res: Response): Promise<ApiResponse> {
+    if (!res.ok) {
+      try {
+        const body = await res.json();
+        return { success: false, error: body.error || body.message || `HTTP ${res.status}` };
+      } catch {
+        return { success: false, error: `HTTP ${res.status}: ${res.statusText}` };
+      }
+    }
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      return res.json();
+    }
+    const text = await res.text();
+    try { return JSON.parse(text); } catch {
+      return { success: true, data: text };
+    }
+  },
+
   async get(endpoint: string, auth = false): Promise<ApiResponse> {
     const res = await fetch(this.base + endpoint, {
       headers: this._headers(auth)
     });
-    return res.json();
+    return this._handleResponse(res);
   },
 
   async post(endpoint: string, data: Record<string, unknown>, auth = false): Promise<ApiResponse> {
@@ -56,7 +75,7 @@ const API = {
       headers: this._headers(auth),
       body: JSON.stringify(data)
     });
-    return res.json();
+    return this._handleResponse(res);
   },
 
   async patch(endpoint: string, data: Record<string, unknown> = {}, auth = false): Promise<ApiResponse> {
@@ -65,7 +84,7 @@ const API = {
       headers: this._headers(auth),
       body: JSON.stringify(data)
     });
-    return res.json();
+    return this._handleResponse(res);
   },
 
   async delete(endpoint: string, auth = false): Promise<ApiResponse> {
@@ -73,7 +92,7 @@ const API = {
       method: 'DELETE',
       headers: this._headers(auth)
     });
-    return res.json();
+    return this._handleResponse(res);
   },
 
   async login(email: string, password: string): Promise<ApiResponse> {
